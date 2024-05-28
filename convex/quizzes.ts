@@ -4,6 +4,7 @@ import { YoutubeTranscript } from 'youtube-transcript';
 import { api } from './_generated/api';
 import { Id } from './_generated/dataModel';
 import { action, mutation, query } from './_generated/server';
+import { quizStatusTypes } from './schema';
 import { vid } from './util';
 
 const {
@@ -91,9 +92,9 @@ function removeFirstAndLastLine(inputString: string | any) {
   return lastLineRemoved;
 }
 
-export async function generateQuiz(instructiontext: string) {
+export async function generateQuestions(instructionText: string) {
   const prompt = `${QUIZPROMPT} \n
-    ${instructiontext} \n
+    ${instructionText} \n
     ${QUIZPROMPTRESPONSEPROMPT} \n
     ${QUIZPROMPTRESPONSEFORMAT}`;
 
@@ -119,6 +120,19 @@ export async function generateQuiz(instructiontext: string) {
   return JSON.parse(cleanedGeneratedQuizQuestions);
 }
 
+export const getQuiz = query({
+  args: {
+    videoId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const quiz = await ctx.db
+      .query('quizzes')
+      .withIndex('by_videoId', (q) => q.eq('videoId', args.videoId))
+      .first();
+    return quiz;
+  },
+});
+
 export const addQuiz = mutation({
   args: {
     videoId: v.string(),
@@ -130,19 +144,45 @@ export const addQuiz = mutation({
       }),
     ),
     createdBy: v.string(),
+    status: v.string(),
   },
   handler: async (ctx, args) => {
-    console.log('hit addQuiz');
-    // Add Quiz Info to DB
-    await ctx.db.insert('quizzes', {
+    const quiz = await ctx.db.insert('quizzes', {
       videoId: args.videoId,
       questions: args.questions,
       createdBy: args.createdBy,
+      status: args.status as 'processing' | 'ready',
+    });
+
+    return quiz;
+  },
+});
+
+export const updateQuiz = mutation({
+  args: {
+    quizId: vid('quizzes'),
+    videoId: v.string(),
+    questions: v.array(
+      v.object({
+        question: v.string(),
+        options: v.array(v.string()),
+        answer: v.string(),
+      }),
+    ),
+    createdBy: v.string(),
+    status: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.quizId, {
+      videoId: args.videoId,
+      questions: args.questions,
+      createdBy: args.createdBy,
+      status: args.status as 'processing' | 'ready',
     });
   },
 });
 
-export const createQuiz = action({
+export const generateQuiz = action({
   args: {
     videoId: vid('videos'),
   },
@@ -150,6 +190,14 @@ export const createQuiz = action({
     // Get the video id
     const video = await ctx.runQuery(api.videos.getVideo, {
       videoId: args.videoId,
+    });
+
+    // Create a new quiz
+    const quiz = await ctx.runMutation(api.quizzes.addQuiz, {
+      videoId: args.videoId,
+      questions: [],
+      createdBy: video.userId,
+      status: 'processing',
     });
 
     // Get the transcript
@@ -166,26 +214,24 @@ export const createQuiz = action({
     );
 
     // Generate the quiz questions
-    const generatedQuestions = await generateQuiz(videoCleanTranscript);
-    console.log(generatedQuestions);
+    const generatedQuestions = await generateQuestions(videoCleanTranscript);
+
     // Put it in the quizzes table
-    await ctx.runMutation(api.quizzes.addQuiz, {
+    await ctx.runMutation(api.quizzes.updateQuiz, {
+      quizId: quiz as Id<'quizzes'>,
       videoId: video._id as Id<'videos'>,
       questions: generatedQuestions,
       createdBy: video.userId,
+      status: 'ready',
     });
   },
 });
 
-export const getQuiz = query({
+export const deleteQuiz = mutation({
   args: {
-    videoId: v.string(),
+    videoId: vid('videos'),
   },
   handler: async (ctx, args) => {
-    const quiz = await ctx.db
-      .query('quizzes')
-      .withIndex('by_videoId', (q) => q.eq('videoId', args.videoId))
-      .first();
-    return quiz;
+    await ctx.db.delete(args.videoId);
   },
 });

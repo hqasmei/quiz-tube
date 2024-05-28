@@ -5,29 +5,36 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import { MainNav } from './main-nav';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useSession } from '@/lib/client-auth';
 import { cn } from '@/lib/utils';
+import { headerIconStyle } from '@/styles/global';
 import { SignedIn, UserButton } from '@clerk/nextjs';
+import { MessageSquareMore } from 'lucide-react';
+
+import { MainNav } from './main-nav';
 
 export default function Header() {
   const pathname = usePathname();
   return (
     <header className="w-full border-b">
-      <div className="container flex h-16 items-center">
-        <MainNav />
-        <div className="flex flex-1 items-center flex-row space-x-6 justify-end">
+      <div className="px-6 flex h-16 items-center">
+        <div className="flex flex-row items-center space-x-4">
+          <MainNav />
           <Link
             href="/dashboard"
             className={`${pathname === '/dashboard' ? 'font-medium' : ''}`}
           >
             Dashboard
           </Link>
+        </div>
+
+        <div className="flex flex-1 items-center flex-row space-x-6 justify-end">
+          <MessageSquareMore className={headerIconStyle} />
+          <ThemeToggle isDropDown={true} />
           <SignedIn>
             <UserButton />
           </SignedIn>
-          {/* <ThemeToggle isDropDown={true} /> */}
         </div>
       </div>
       <hr className="m-0 h-px w-full border-none bg-gradient-to-r from-neutral-200/0 via-neutral-200/30 to-neutral-200/0" />

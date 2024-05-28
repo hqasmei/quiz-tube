@@ -8,6 +8,7 @@ import {
   ResizablePanelGroup,
 } from '@/components/ui/resizable';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { useQuery } from 'convex/react';
@@ -58,17 +59,19 @@ export default function LearnPage({ params }: { params: { videoId: string } }) {
     <>
       {/* Mobile */}
       <div className="p-4 flex flex-col lg:hidden">
-        <div className="mt-10 flex flex-col space-y-4 items-center justify-center min-w-xl">
-          <iframe
-            width="100%"
-            height="100%"
-            src={`https://www.youtube.com/embed/${getVideo?.youtubeId}`}
-            className="rounded-xl w-full h-full"
-          />
+        <div className="flex flex-col space-y-4  min-w-xl">
+          <div className="w-full aspect-video">
+            <iframe
+              width="100"
+              height="100"
+              src={`https://www.youtube.com/embed/${getVideo?.youtubeId}`}
+              className="rounded-xl w-full h-full"
+            />
+          </div>
           <span className="text-xl font-semibold">{getVideo?.title}</span>
         </div>
 
-        <div className="rounded-lg pt-4 bg-white">
+        <div className="rounded-lg mt-10 pt-6 bg-white">
           <Tabs defaultValue="questions" className="w-full flex-1 px-4">
             <TabsList className="w-full">
               <TabsTrigger value="questions" className="w-full">
@@ -79,62 +82,78 @@ export default function LearnPage({ params }: { params: { videoId: string } }) {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="questions">
-              <div className="mx-auto pb-10">
-                {getQuiz?.questions?.map((question: any, index: number) => (
-                  <div
-                    key={index}
-                    className="my-4 p-5  rounded-lg bg-neutral-50"
-                  >
-                    <h3 className="font-semibold">
-                      {index + 1}. {question.question}
-                    </h3>
-                    <div className="mt-2">
-                      {question.options.map((option: string, idx: number) => (
-                        <button
-                          key={idx}
-                          onClick={() => handleAnswer(index, option)}
-                          className={`block p-2 my-2 text-left w-full border rounded hover:bg-gray-100 ${answers[index] === option ? 'bg-blue-100' : ''}`}
-                        >
-                          {option}
-                          {answers[index] === option && (
-                            <span
-                              className={`font-bold ${option === question.answer ? 'text-green-500' : 'text-red-500'}`}
-                            >
-                              {option === question.answer
-                                ? ' Correct'
-                                : ' Incorrect'}
-                            </span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                {quizComplete && (
-                  <div className="text-center p-5">
-                    <h2 className="text-lg font-semibold">
-                      Quiz Completed! Here are your results:
-                    </h2>
-                    <p>
-                      You got {score} out of {getQuiz?.questions.length}{' '}
-                      correct!
-                    </p>
-                    {getQuiz?.questions.map((question: any, index: number) => (
-                      <div
-                        key={index}
-                        className={`text-${answers[index] === question.answer ? 'green' : 'red'}-500`}
-                      >
-                        Question {index + 1}:{' '}
-                        {answers[index] === question.answer
-                          ? 'Correct'
-                          : 'Incorrect'}
+              {getQuiz?.status === 'ready' ? (
+                <div className="mx-auto pb-10 flex flex-col space-y-4">
+                  {getQuiz?.questions?.map((question: any, index: number) => (
+                    <div
+                      key={index}
+                      className="bg-accent rounded-lg p-4 md:p-6"
+                    >
+                      <h2 className="text-xl font-semibold mb-2 dark:text-white">
+                        {index + 1}. {question.question}
+                      </h2>
+                      <div className="grid grid-cols-2 gap-3 md:gap-4">
+                        {question.options.map((option: string, idx: number) => (
+                          <button
+                            key={idx}
+                            onClick={() => handleAnswer(index, option)}
+                            className={cn(
+                              `rounded-lg px-4 py-2 text-left transition-colors`,
+                              answers[index] === option
+                                ? option === question.answer
+                                  ? 'bg-green-300 dark:bg-green-700 '
+                                  : 'bg-red-300 dark:bg-red-700 '
+                                : 'bg-white dark:bg-neutral-700',
+                            )}
+                          >
+                            {option}
+                          </button>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                    </div>
+                  ))}
+                  {quizComplete && (
+                    <div className="text-center p-5">
+                      <h2 className="text-lg font-semibold">
+                        Quiz Completed! Here are your results:
+                      </h2>
+                      <p>
+                        You got {score} out of {getQuiz?.questions.length}{' '}
+                        correct!
+                      </p>
+                      {getQuiz?.questions.map(
+                        (question: any, index: number) => (
+                          <div
+                            key={index}
+                            className={`text-${answers[index] === question.answer ? 'green' : 'red'}-500`}
+                          >
+                            Question {index + 1}:{' '}
+                            {answers[index] === question.answer
+                              ? 'Correct'
+                              : 'Incorrect'}
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="mx-auto pb-10 flex flex-col space-y-4">
+                  <Skeleton className="h-48 w-full rounded-md " />
+                  <Skeleton className="h-48 w-full rounded-md " />
+                  <Skeleton className="h-48 w-full rounded-md " />
+                  <Skeleton className="h-48 w-full rounded-md " />
+                  <Skeleton className="h-48 w-full rounded-md " />
+                </div>
+              )}
             </TabsContent>
-            <TabsContent value="submissions"></TabsContent>
+            <TabsContent value="submissions">
+              <Skeleton className="h-48 w-full rounded-md " />
+              <Skeleton className="h-48 w-full rounded-md " />
+              <Skeleton className="h-48 w-full rounded-md " />
+              <Skeleton className="h-48 w-full rounded-md " />
+              <Skeleton className="h-48 w-full rounded-md " />
+            </TabsContent>
           </Tabs>
         </div>
       </div>
@@ -142,23 +161,24 @@ export default function LearnPage({ params }: { params: { videoId: string } }) {
       {/* Desktop */}
       <div className="w-full hidden lg:flex">
         <ResizablePanelGroup direction="horizontal">
-          <ResizablePanel className="min-w-xl">
-            <div className="mt-10 flex flex-col space-y-4 items-center justify-center min-w-xl">
-              <iframe
-                width="620"
-                height="315"
-                src={`https://www.youtube.com/embed/${getVideo?.youtubeId}`}
-                className="rounded-xl w-[60%] h-full"
-              />
+          <ResizablePanel className="w-full min-w-[400px]">
+            <div className="flex flex-col space-y-4  flex-1 h-full p-4">
+              <div className="w-full aspect-video">
+                <iframe
+                  src={`https://www.youtube.com/embed/${getVideo?.youtubeId}`}
+                  className="rounded-xl w-full h-full"
+                />
+              </div>
+
               <span className="text-xl font-semibold">{getVideo?.title}</span>
             </div>
           </ResizablePanel>
           <ResizableHandle withHandle />
-          <ResizablePanel>
+          <ResizablePanel className="w-full min-w-[600px]">
             <ScrollArea className="h-[calc(93vh-10px)] w-full rounded-md ">
-              <div className="m-4 rounded-lg pt-4 bg-white">
+              <div className="m-4 rounded-lg pt-4 bg-background">
                 <Tabs defaultValue="questions" className="w-full   flex-1 px-4">
-                  <TabsList className="w-full">
+                  <TabsList className="w-full mb-4">
                     <TabsTrigger value="questions" className="w-full">
                       Questions
                     </TabsTrigger>
@@ -167,66 +187,84 @@ export default function LearnPage({ params }: { params: { videoId: string } }) {
                     </TabsTrigger>
                   </TabsList>
                   <TabsContent value="questions">
-                    <div className="mx-auto pb-10 flex flex-col space-y-4">
-                      {getQuiz?.questions?.map(
-                        (question: any, index: number) => (
-                          <div
-                            key={index}
-                            className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 md:p-6"
-                          >
-                            <h2 className="text-xl font-semibold mb-2 dark:text-white">
-                              {index + 1}. {question.question}
-                            </h2>
-                            <div className="grid grid-cols-2 gap-3 md:gap-4">
-                              {question.options.map(
-                                (option: string, idx: number) => (
-                                  <button
-                                    key={idx}
-                                    onClick={() => handleAnswer(index, option)}
-                                    className={cn(
-                                      `rounded-lg px-4 py-2 text-left transition-colors`,
-                                      answers[index] === option
-                                        ? option === question.answer
-                                          ? 'bg-green-300 dark:bg-green-700 '
-                                          : 'bg-red-300 dark:bg-red-700 '
-                                        : 'bg-white dark:bg-gray-700',
-                                    )}
-                                  >
-                                    {option}
-                                  </button>
-                                ),
-                              )}
-                            </div>
-                          </div>
-                        ),
-                      )}
-                      {quizComplete && (
-                        <div className="text-center p-5">
-                          <h2 className="text-lg font-semibold">
-                            Quiz Completed! Here are your results:
-                          </h2>
-                          <p>
-                            You got {score} out of {getQuiz?.questions.length}{' '}
-                            correct!
-                          </p>
-                          {getQuiz?.questions.map(
-                            (question: any, index: number) => (
-                              <div
-                                key={index}
-                                className={`text-${answers[index] === question.answer ? 'green' : 'red'}-500`}
-                              >
-                                Question {index + 1}:{' '}
-                                {answers[index] === question.answer
-                                  ? 'Correct'
-                                  : 'Incorrect'}
+                    {getQuiz?.status === 'ready' ? (
+                      <div className="mx-auto pb-10 flex flex-col space-y-4">
+                        {getQuiz?.questions?.map(
+                          (question: any, index: number) => (
+                            <div
+                              key={index}
+                              className="bg-neutral-200/70 dark:bg-accent  rounded-lg p-4 md:p-6"
+                            >
+                              <h2 className="text-xl font-semibold mb-2 dark:text-white">
+                                {index + 1}. {question.question}
+                              </h2>
+                              <div className="grid grid-cols-2 gap-3 md:gap-4">
+                                {question.options.map(
+                                  (option: string, idx: number) => (
+                                    <button
+                                      key={idx}
+                                      onClick={() =>
+                                        handleAnswer(index, option)
+                                      }
+                                      className={cn(
+                                        `rounded-lg px-4 py-2 text-left transition-colors`,
+                                        answers[index] === option
+                                          ? option === question.answer
+                                            ? 'bg-green-300 dark:bg-green-700 '
+                                            : 'bg-red-300 dark:bg-red-700 '
+                                          : 'bg-white dark:bg-neutral-700',
+                                      )}
+                                    >
+                                      {option}
+                                    </button>
+                                  ),
+                                )}
                               </div>
-                            ),
-                          )}
-                        </div>
-                      )}
-                    </div>
+                            </div>
+                          ),
+                        )}
+                        {quizComplete && (
+                          <div className="text-center p-5">
+                            <h2 className="text-lg font-semibold">
+                              Quiz Completed! Here are your results:
+                            </h2>
+                            <p>
+                              You got {score} out of {getQuiz?.questions.length}{' '}
+                              correct!
+                            </p>
+                            {getQuiz?.questions.map(
+                              (question: any, index: number) => (
+                                <div
+                                  key={index}
+                                  className={`text-${answers[index] === question.answer ? 'green' : 'red'}-500`}
+                                >
+                                  Question {index + 1}:{' '}
+                                  {answers[index] === question.answer
+                                    ? 'Correct'
+                                    : 'Incorrect'}
+                                </div>
+                              ),
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="mx-auto pb-10 flex flex-col space-y-4">
+                        <Skeleton className="h-48 w-full rounded-md " />
+                        <Skeleton className="h-48 w-full rounded-md " />
+                        <Skeleton className="h-48 w-full rounded-md " />
+                        <Skeleton className="h-48 w-full rounded-md " />
+                        <Skeleton className="h-48 w-full rounded-md " />
+                      </div>
+                    )}
                   </TabsContent>
-                  <TabsContent value="submissions"></TabsContent>
+                  <TabsContent value="submissions">
+                    <Skeleton className="h-48 w-full rounded-md " />
+                    <Skeleton className="h-48 w-full rounded-md " />
+                    <Skeleton className="h-48 w-full rounded-md " />
+                    <Skeleton className="h-48 w-full rounded-md " />
+                    <Skeleton className="h-48 w-full rounded-md " />
+                  </TabsContent>
                 </Tabs>
               </div>
             </ScrollArea>

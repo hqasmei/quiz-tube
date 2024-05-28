@@ -1,13 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 
-import { Icons } from '@/components/icons';
 import { siteConfig } from '@/config/site';
 
 export function MainNav() {
-  const pathname = usePathname();
   const [firstPart, secondPart] = siteConfig.name.split(/(?<=^Quiz)/);
 
   return (

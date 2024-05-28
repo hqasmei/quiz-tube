@@ -23,9 +23,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={cn(montserrat.className)}>
-        <ContextProvider>{children}</ContextProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ContextProvider>{children}</ContextProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

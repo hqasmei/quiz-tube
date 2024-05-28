@@ -6,7 +6,7 @@ import { v } from 'convex/values';
 import { api } from './_generated/api';
 import { Id } from './_generated/dataModel';
 import { action, mutation, query } from './_generated/server';
-import { vid } from './util';
+import { getUserId, vid } from './util';
 
 function getYouTubeId(url: string): string | null {
   const regex =
@@ -52,17 +52,18 @@ export const addVideoInfo = mutation({
     youtubeUrl: v.string(),
     title: v.string(),
     tags: v.optional(v.array(v.string())),
-    userId: v.string(),
     youtubeId: v.string(),
   },
   handler: async (ctx, args) => {
+    // Get User ID
+    const userId = await getUserId(ctx);
     // Add Quiz Info to DB
     const videoId = await ctx.db.insert('videos', {
       thumbnailUrl: args.thumbnailUrl,
       youtubeUrl: args.youtubeUrl,
       title: args.title,
       tags: args.tags,
-      userId: args.userId,
+      userId: userId as Id<'users'>,
       youtubeId: args.youtubeId,
     });
     return videoId as Id<'videos'>;
@@ -72,7 +73,6 @@ export const addVideoInfo = mutation({
 export const addVideo = action({
   args: {
     youtubeUrl: v.string(),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
     // Get Youtube ID
@@ -89,7 +89,6 @@ export const addVideo = action({
         title: title,
         tags: tags,
         thumbnailUrl: thumbnailUrl,
-        userId: args.userId as Id<'users'>,
         youtubeId: youtubeId as string,
       },
     );
@@ -110,13 +109,16 @@ export const getVideo = query({
 });
 
 export const getVideos = query({
-  args: { userId: v.string() },
+  args: {},
 
   handler: async (ctx, args) => {
-    if (args.userId) {
+    // Get User ID
+    const userId = await getUserId(ctx);
+
+    if (userId) {
       const videos = await ctx.db
         .query('videos')
-        .withIndex('by_userId', (q) => q.eq('userId', args.userId))
+        .withIndex('by_userId', (q) => q.eq('userId', userId))
         .collect();
       return videos;
     }

@@ -28,10 +28,8 @@ import { DeleteVideoModal } from '../../_components/sheets/delete-video-modal';
 import { UpdateVideoModal } from '../../_components/sheets/update-video-modal';
 
 export function VideoContent() {
-  const { session } = useSession();
   const router = useRouter();
-  const userId = session?.user.id as Id<'users'>;
-  const getVideos = useQuery(api.videos.getVideos, { userId: userId });
+  const getVideos = useQuery(api.videos.getVideos);
   const [showDeleteVideoModal, setShowDeleteVideoModal] = useState(false);
   const [showUpdateVideoModal, setShowUpdateVideoModal] = useState(false);
   if (!getVideos) return <VideoContentSkeleton />;
@@ -70,7 +68,7 @@ export function VideoContent() {
                         </div>
                       </div>
                     </Link>
-                    <div className='absolute right-2.5 bottom-2.5 flex'>
+                    <div className="absolute right-2.5 bottom-2.5 flex">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button

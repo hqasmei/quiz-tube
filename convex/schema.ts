@@ -1,6 +1,11 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
+export const quizStatusTypes = v.union(
+  v.literal('processing'),
+  v.literal('ready'),
+);
+
 export default defineSchema({
   users: defineTable({
     userId: v.string(),
@@ -29,5 +34,6 @@ export default defineSchema({
       }),
     ),
     createdBy: v.string(),
+    status: quizStatusTypes,
   }).index('by_videoId', ['videoId']),
 });

@@ -8,9 +8,9 @@ export default async function MainLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className='flex flex-col h-screen'>
+    <div className="flex flex-col h-screen">
       <Header />
-      <main className="flex-1  bg-neutral-50">{children}</main>
+      <main className="flex-1  bg-accent dark:bg-background">{children}</main>
     </div>
   );
 }

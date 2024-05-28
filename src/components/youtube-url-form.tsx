@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 
 import { useRouter } from 'next/navigation';
 
@@ -13,8 +13,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { api } from '@/convex/_generated/api';
-import { Id } from '@/convex/_generated/dataModel';
-import { useSession } from '@/lib/client-auth';
+import { Id } from '@/convex/_generated/dataModel'; 
 import { useUser } from '@clerk/clerk-react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAction } from 'convex/react';
@@ -31,18 +30,16 @@ const formSchema = z.object({
 });
 
 export default function YoutubeURLForm() {
-  const user = useUser();
-  const session = useSession();
+  const user = useUser(); 
   const router = useRouter();
-  const userId = session?.session?.user?.id;
 
   const addVideo = useAction(api.videos.addVideo);
-  const createQuiz = useAction(api.quizzes.createQuiz);
+  const generateQuiz = useAction(api.quizzes.generateQuiz);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      youtubeUrl: 'https://www.youtube.com/watch?v=tZVZQLyCDfo',
+      youtubeUrl: '',
     },
   });
 
@@ -55,10 +52,9 @@ export default function YoutubeURLForm() {
         // Add Video Info to DB
         const videoId = await addVideo({
           youtubeUrl: values.youtubeUrl,
-          userId: userId as Id<'users'>,
         });
-        // Create Quiz
-        createQuiz({
+        // Generate Quiz
+        generateQuiz({
           videoId: videoId as Id<'videos'>,
         });
         // Redirect to Quiz
@@ -84,32 +80,31 @@ export default function YoutubeURLForm() {
             render={({ field }) => (
               <FormItem className="w-full">
                 <FormControl>
-                  <div className="relative h-10 w-full rounded-md">
-                    <Input
-                      placeholder="https://www.youtube.com/watch?v=tZVZQLyCDfo"
-                      {...field}
-                      className="h-12 text-md w-full rounded-lg"
-                    />
-                    <Button
-                      type="submit"
-                      className="w-fit whitespace-nowrap group mt-0.5 flex flex-row items-center gap-1.5 absolute right-1.5 top-[22px] transform -translate-y-1/2   z-10 cursor-pointer"
-                      disabled={isLoading || !isValid}
-                    >
-                      {isLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <div className="flex flex-row items-center space-x-1">
-                          <span>Generate Quiz</span>
-                          <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 duration-200" />
-                        </div>
-                      )}
-                    </Button>
-                  </div>
+                  <Input
+                    placeholder="https://www.youtube.com/watch?v=tZVZQLyCDfo"
+                    {...field}
+                    className="w-full overflow-hidden truncate"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+
+          <Button
+            type="submit"
+            className="whitespace-nowrap group w-fit h-10"
+            disabled={isLoading || !isValid}
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <div className="flex flex-row items-center space-x-1">
+                <span>Generate Quiz</span>
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 duration-200" />
+              </div>
+            )}
+          </Button>
         </form>
       </Form>
     </div>

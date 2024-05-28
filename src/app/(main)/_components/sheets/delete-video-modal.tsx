@@ -52,13 +52,18 @@ function DeleteVideoForm({
 
   const isLoading = form.formState.isSubmitting;
 
+  const deleteQuiz = useMutation(api.quizzes.deleteQuiz);
   const deleteVideo = useMutation(api.videos.deleteVideo);
 
   const onSubmit = async () => {
-    try {
+    try { 
+      deleteQuiz({
+        videoId: videoItem?._id as Id<'videos'>,
+      });
       deleteVideo({
         videoId: videoItem?._id as Id<'videos'>,
       });
+
       setOpen(false);
     } catch (error) {
       console.log(error);
