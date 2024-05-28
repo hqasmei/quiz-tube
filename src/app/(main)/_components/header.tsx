@@ -5,7 +5,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import { MainNav } from '@/components/main-nav';
+import { MainNav } from './main-nav';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useSession } from '@/lib/client-auth';
 import { cn } from '@/lib/utils';

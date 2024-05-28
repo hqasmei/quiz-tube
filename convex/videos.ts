@@ -126,11 +126,25 @@ export const getVideos = query({
 export const deleteVideo = mutation({
   args: { videoId: vid('videos') },
   handler: async (ctx, args) => {
+    return await ctx.db.delete(args.videoId);
+  },
+});
+
+export const updateVideo = mutation({
+  args: {
+    videoId: vid('videos'),
+    title: v.string(),
+  },
+  handler: async (ctx, args) => {
     const video = await ctx.db.get(args.videoId);
     if (!video) {
       throw new Error('video not found');
     }
 
-    return await ctx.db.delete(video._id);
+    const toUpdate = {} as any;
+
+    if (args.title) toUpdate.title = args.title;
+
+    return await ctx.db.patch(args.videoId, toUpdate);
   },
 });

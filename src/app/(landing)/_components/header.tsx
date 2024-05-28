@@ -3,7 +3,7 @@
 import React from 'react';
 
 import ConditionalSignin from '@/components/conditional-signin';
-import { MainNav } from '@/components/main-nav';
+import { MainNav } from './main-nav';
 import { cn } from '@/lib/utils';
 
 export default function Header() {
