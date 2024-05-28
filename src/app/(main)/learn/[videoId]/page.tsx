@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/resizable';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { YouTubeEmbed } from '@next/third-parties/google';
+import { cn } from '@/lib/utils';
 import { useQuery } from 'convex/react';
 
 import { api } from '../../../../../convex/_generated/api';
@@ -167,34 +167,32 @@ export default function LearnPage({ params }: { params: { videoId: string } }) {
                     </TabsTrigger>
                   </TabsList>
                   <TabsContent value="questions">
-                    <div className="mx-auto pb-10">
+                    <div className="mx-auto pb-10 flex flex-col space-y-4">
                       {getQuiz?.questions?.map(
                         (question: any, index: number) => (
                           <div
                             key={index}
-                            className="my-4 p-5  rounded-lg bg-neutral-50"
+                            className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 md:p-6"
                           >
-                            <h3 className="font-semibold">
+                            <h2 className="text-xl font-semibold mb-2 dark:text-white">
                               {index + 1}. {question.question}
-                            </h3>
-                            <div className="mt-2">
+                            </h2>
+                            <div className="grid grid-cols-2 gap-3 md:gap-4">
                               {question.options.map(
                                 (option: string, idx: number) => (
                                   <button
                                     key={idx}
                                     onClick={() => handleAnswer(index, option)}
-                                    className={`block p-2 my-2 text-left w-full border rounded hover:bg-gray-100 ${answers[index] === option ? 'bg-blue-100' : ''}`}
+                                    className={cn(
+                                      `rounded-lg px-4 py-2 text-left transition-colors`,
+                                      answers[index] === option
+                                        ? option === question.answer
+                                          ? 'bg-green-300 dark:bg-green-700 '
+                                          : 'bg-red-300 dark:bg-red-700 '
+                                        : 'bg-white dark:bg-gray-700',
+                                    )}
                                   >
                                     {option}
-                                    {answers[index] === option && (
-                                      <span
-                                        className={`font-bold ${option === question.answer ? 'text-green-500' : 'text-red-500'}`}
-                                      >
-                                        {option === question.answer
-                                          ? ' Correct'
-                                          : ' Incorrect'}
-                                      </span>
-                                    )}
                                   </button>
                                 ),
                               )}
