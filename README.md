@@ -1,5 +1,14 @@
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
+## Development Setup
+
+1. Setting up connection between Convex and Clerk
+   Generate the JWT in Clerk for Convex using the instructions [here](https://clerk.com/docs/integrations/databases/convex)
+2. Add following environment variables in Convex:
+   - GOOGLE_GENERATIVE_AI_API_KEY
+   - YOUTUBE_API_KEY
+   - CLERK_JWT_ISSUER_DOMAIN
+
 ## Getting Started
 
 First, run the development server:

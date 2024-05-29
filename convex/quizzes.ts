@@ -102,17 +102,17 @@ export async function generateQuestions(instructionText: string) {
   const result = await model.generateContent(prompt);
   const response = result.response;
   const generatedQuizQuestions = response.text();
-  // console.log('Prompt response:', generatedQuizQuestions);
-  // console.log(
-  //   'After clean up: ',
-  //   removeFirstAndLastLine(generatedQuizQuestions),
-  // );
 
   // The response from the API is in the format
   // ```json
   // [{....}]
   // ```
   // Clean the first and last line to extract the JSON
+  // console.log('Prompt response:', generatedQuizQuestions);
+  // console.log(
+  //   'After clean up: ',
+  //   removeFirstAndLastLine(generatedQuizQuestions),
+  // );
   const cleanedGeneratedQuizQuestions = removeFirstAndLastLine(
     generatedQuizQuestions,
   );
