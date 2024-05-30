@@ -20,6 +20,7 @@ export default defineSchema({
     thumbnailUrl: v.string(),
     youtubeUrl: v.string(),
     title: v.string(),
+    summary: v.string(),
     tags: v.optional(v.array(v.string())),
     userId: v.string(),
     youtubeId: v.string(),

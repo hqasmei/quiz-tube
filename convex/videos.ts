@@ -1,12 +1,24 @@
 import { title } from 'process';
 
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { generateText } from 'ai';
 import axios from 'axios';
 import { v } from 'convex/values';
+import { YoutubeTranscript } from 'youtube-transcript';
 
 import { api } from './_generated/api';
 import { Id } from './_generated/dataModel';
 import { action, mutation, query } from './_generated/server';
 import { getUserId, vid } from './util';
+
+const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+const google = createGoogleGenerativeAI({
+  apiKey: apiKey,
+});
+
+const model = google('models/gemini-1.5-pro-latest', {
+  topK: 64,
+});
 
 function getYouTubeId(url: string): string | null {
   const regex =
@@ -35,14 +47,34 @@ const getVideoInfo = async (youtubeId: string) => {
 
   try {
     const response = await axios.get(url);
+    // Get the title
     const title = response.data.items[0].snippet.title;
+    // Get the tags
     const tags = response.data.items[0].snippet.tags;
+    // Get the thumbnail URL
     const thumbnailUrl = getBestThumbnail(
       response.data.items[0].snippet.thumbnails,
     );
-    return { title, tags, thumbnailUrl };
+    // Get the transcript
+    const transcript = YoutubeTranscript.fetchTranscript(youtubeId, {
+      lang: 'en',
+    });
+    // Clean the transcript
+    let completeTranscript = '';
+    (await transcript).map((t) => (completeTranscript += t.text));
+    const videoCleanTranscript = completeTranscript.replace(
+      /[^\x00-\x7F]/g,
+      '',
+    );
+    // Get the summary
+    const { text } = await generateText({
+      model: model,
+      prompt: `Give me a summary of this video transcript, ${videoCleanTranscript}`,
+    });
+    const summary = text;
+    return { title, summary, tags, thumbnailUrl };
   } catch (error) {
-    return { title: '', tags: '', thumbnailUrl: '' };
+    return { title: '', summary: '', tags: '', thumbnailUrl: '' };
   }
 };
 
@@ -51,6 +83,7 @@ export const addVideoInfo = mutation({
     thumbnailUrl: v.string(),
     youtubeUrl: v.string(),
     title: v.string(),
+    summary: v.string(),
     tags: v.optional(v.array(v.string())),
     youtubeId: v.string(),
   },
@@ -62,6 +95,7 @@ export const addVideoInfo = mutation({
       thumbnailUrl: args.thumbnailUrl,
       youtubeUrl: args.youtubeUrl,
       title: args.title,
+      summary: args.summary,
       tags: args.tags,
       userId: userId as Id<'users'>,
       youtubeId: args.youtubeId,
@@ -78,7 +112,7 @@ export const addVideo = action({
     // Get Youtube ID
     const youtubeId = getYouTubeId(args.youtubeUrl);
     // Get the Title, Tags and Thumbnail URL
-    const { title, tags, thumbnailUrl } = await getVideoInfo(
+    const { title, summary, tags, thumbnailUrl } = await getVideoInfo(
       youtubeId as string,
     );
     // Add Video Info to DB
@@ -87,6 +121,7 @@ export const addVideo = action({
       {
         youtubeUrl: args.youtubeUrl,
         title: title,
+        summary: summary,
         tags: tags,
         thumbnailUrl: thumbnailUrl,
         youtubeId: youtubeId as string,

@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { api } from '@/convex/_generated/api';
-import { Id } from '@/convex/_generated/dataModel'; 
+import { Id } from '@/convex/_generated/dataModel';
 import { useUser } from '@clerk/clerk-react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAction } from 'convex/react';
@@ -30,7 +30,7 @@ const formSchema = z.object({
 });
 
 export default function YoutubeURLForm() {
-  const user = useUser(); 
+  const user = useUser();
   const router = useRouter();
 
   const addVideo = useAction(api.videos.addVideo);
@@ -39,7 +39,7 @@ export default function YoutubeURLForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      youtubeUrl: '',
+      youtubeUrl: 'https://www.youtube.com/watch?v=tZVZQLyCDfo',
     },
   });
 

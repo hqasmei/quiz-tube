@@ -171,6 +171,10 @@ export default function LearnPage({ params }: { params: { videoId: string } }) {
               </div>
 
               <span className="text-xl font-semibold">{getVideo?.title}</span>
+              <div className="flex flex-col space-y-2">
+                <span className="font-medium">Summary</span>
+                <p>{getVideo?.summary}</p>
+              </div>
             </div>
           </ResizablePanel>
           <ResizableHandle withHandle />
