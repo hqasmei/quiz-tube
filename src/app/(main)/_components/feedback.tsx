@@ -55,6 +55,7 @@ export default function Feedback() {
         }),
       });
       toast.success('Your feedback has been submitted');
+      form.reset();
       setOpen(false);
     } catch (error) {
       console.error('Failed to send feedback:', error);
