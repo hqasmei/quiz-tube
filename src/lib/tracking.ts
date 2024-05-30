@@ -10,6 +10,7 @@ export async function trackEvent(key: string) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
     },
     body: JSON.stringify({
       key: key,
