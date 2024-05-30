@@ -6,16 +6,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { ThemeToggle } from '@/components/theme-toggle';
-import { useSession } from '@/lib/client-auth';
-import { cn } from '@/lib/utils';
-import { headerIconStyle } from '@/styles/global';
 import { SignedIn, UserButton } from '@clerk/nextjs';
-import { MessageSquareMore } from 'lucide-react';
 
+import Feedback from './feedback';
 import { MainNav } from './main-nav';
 
 export default function Header() {
   const pathname = usePathname();
+
   return (
     <header className="w-full border-b">
       <div className="px-6 flex h-16 items-center">
@@ -30,7 +28,7 @@ export default function Header() {
         </div>
 
         <div className="flex flex-1 items-center flex-row space-x-6 justify-end">
-          <MessageSquareMore className={headerIconStyle} />
+          <Feedback />
           <ThemeToggle isDropDown={true} />
           <SignedIn>
             <UserButton />

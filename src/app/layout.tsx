@@ -6,6 +6,7 @@ import '@/styles/globals.css';
 import { ContextProvider } from '@/components/context-provider';
 import { ThemeProvider } from '@/components/theme-provider';
 import { cn } from '@/lib/utils';
+import { toast, Toaster } from 'sonner';
 
 const montserrat = Montserrat({ subsets: ['latin'] });
 
@@ -32,6 +33,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <ContextProvider>{children}</ContextProvider>
+          <Toaster position="top-center" />
         </ThemeProvider>
       </body>
     </html>
