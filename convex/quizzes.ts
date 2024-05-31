@@ -114,6 +114,8 @@ function removeFirstAndLastLine(inputString: string | any) {
  
  Normalized Format
  Format 2
+ WHY?
+ Makes it easy to evaluate the submission by doing string equality check with answer
 */  
 function normalizeQuizQuestions(quizQuestions: Array<QuizQuestion>): Array<QuizQuestion> {
   // RegEx to identify the response of format 1
