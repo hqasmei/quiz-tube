@@ -4,7 +4,7 @@ import { YoutubeTranscript } from 'youtube-transcript';
 import { api } from './_generated/api';
 import { Id } from './_generated/dataModel';
 import { action, mutation, query } from './_generated/server';
-import { quizStatusTypes } from './schema';
+import { QUIZ_STATUS_TYPES } from './schema';
 import { vid } from './util';
 
 const {
@@ -15,6 +15,7 @@ const {
 
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
+const QUIZ_GENERATION_RETRY_COUNT_LIMIT = process.env.QUIZ_GENERATION_RETRY_COUNT_LIMIT ? parseInt(process.env.QUIZ_GENERATION_RETRY_COUNT_LIMIT, 10) : 3;
 
 const generationConfig = {
   temperature: 1,
@@ -57,67 +58,144 @@ const QUIZPROMPTRESPONSEFORMAT = `[{
                               answer: pointing to the option label
                               }]`;
 
+type QuizQuestion = {
+  question: string;
+  options: Array<string>;
+  answer: string;
+};
+
 function removeFirstAndLastLine(inputString: string | any) {
   // Split the string into an array of lines using newline character as delimiter
-  const lines = inputString.split(/\n/);
-  let firstLineRemoved;
-  let lastLineRemoved;
+  let lines = inputString.split(/\n/);
 
-  // console.log(`lines[0]: ${lines[0]}`);
-
-  if (lines[0].indexOf('`') > -1) {
+  // For the input string starting with "```json"
+  if (lines[0].indexOf('```json') > -1) {
     // Remove the first line
-    firstLineRemoved = lines.slice(1).join('\n');
-    // console.log(`firstLineRemoved are: ${firstLineRemoved}`);
+    lines = lines.slice(1);
   }
 
-  // console.log(`Last line: ${lines[lines.length - 1]}`);
-  if (lines[lines.length - 1].indexOf('`') > -1) {
+  console.debug(`After first line removal`, lines);
+
+  if (lines[lines.length - 1].indexOf('```') > -1) {
     // Remove the last line
-    if (firstLineRemoved) {
-      lastLineRemoved = firstLineRemoved.split(/\n/).slice(0, -1).join('\n');
-    } else {
-      lastLineRemoved = lines.splice(0, -1).join('\n');
-    }
+    lines = lines.slice(0, -1);
   }
 
-  if (lastLineRemoved && lastLineRemoved.length < 0) {
-    lastLineRemoved = [];
+  console.debug(`After last line removal`, lines);
+
+  // In case when inputString is equal to
+  // ```json
+  // ```
+  if (lines.length <= 0) {
+    return [];
   }
 
-  if (!lastLineRemoved) {
-    return inputString;
-  }
-
-  return lastLineRemoved;
+  return lines.join('\n');
 }
 
-export async function generateQuestions(instructionText: string) {
+/** Quiz questions and answers are generated in two formats
+ Format 1:
+ Multiple choice options:
+ A. Choice 1
+ B. Choice 2
+ C. Choice 3
+ D. Choice 4
+ 
+ Answer: B
+ 
+ Format 2:
+ Multiple choice options:
+ Choice 1
+ Choice 2
+ Choice 3
+ Choice 4
+ 
+ Answer Choice 2
+ 
+ Normalized Format
+ Format 2
+ WHY?
+ Makes it easy to evaluate the submission by doing string equality check with answer
+*/  
+function normalizeQuizQuestions(quizQuestions: Array<QuizQuestion>): Array<QuizQuestion> {
+  // RegEx to identify the response of format 1
+  const format1OptionRegEx = /^[a-zA-Z0-9][\.)\]]/; // Supports options listed as "A.", "a.", "1." OR "A)" OR "A]"
+  const format1AnswerRegEx = /^[a-zA-Z0-9]/; // Supports options listed as "A", "a", "1"
+
+  // YouTube video samples that generate format 1 question set
+  // Option Format: "A)" https://youtu.be/1598tCTdPrg
+
+  quizQuestions.forEach((questionObj: QuizQuestion) => {
+    const questionOptions = questionObj.options;
+    const questionAnswer = questionObj.answer;
+    
+    // For format 2 response, no processing is needed
+    let normalizedQuestionAnswer = questionAnswer;
+    let normalizedQuestionOptions = questionOptions;
+
+    questionOptions.forEach((option: string, index: number) => {
+      if (format1OptionRegEx.test(option)) {
+        const optionLabel = option[0];
+        option = option.substring(2).trimStart();
+        normalizedQuestionOptions[index] = option;
+        
+        if (format1AnswerRegEx.test(questionAnswer) &&
+          questionAnswer == optionLabel
+        ) {
+          normalizedQuestionAnswer = option;
+        }
+      }
+    });
+
+    questionObj['options'] = normalizedQuestionOptions;
+    questionObj['answer'] = normalizedQuestionAnswer;
+  });
+
+  return quizQuestions;
+}
+
+function processApiResponse(apiResponse: string | any) {
+  try {
+    console.debug(`API Response: ${apiResponse}`);
+    
+    // Step 1: Extract the parsable JSON from the response
+    const jsonStrFromResponse = removeFirstAndLastLine(apiResponse);
+    console.debug(`API JSON Response: ${jsonStrFromResponse}`);
+    const questionsJson = JSON.parse(jsonStrFromResponse);
+
+    // Step 2: Normalize the questions and answers
+    const normalizedQuestions = normalizeQuizQuestions(questionsJson);
+    console.debug(`Normalized quiz questions: ${JSON.stringify(normalizedQuestions)}`);
+    
+    return normalizedQuestions;
+  } catch (error) {
+    console.error(`API Response failed JSON parsing: ${apiResponse}`);
+    throw error;
+  }
+}
+
+export async function generateQuestions(instructionText: string, attemptCount = 1) {
   const prompt = `${QUIZPROMPT} \n
     ${instructionText} \n
     ${QUIZPROMPTRESPONSEPROMPT} \n
     ${QUIZPROMPTRESPONSEFORMAT}`;
 
-  // Inspired from https://github.com/google-gemini/generative-ai-js/blob/main/samples/node/simple-text.js#L28
-  const result = await model.generateContent(prompt);
-  const response = result.response;
-  const generatedQuizQuestions = response.text();
+  try {
+    // Inspired from https://github.com/google-gemini/generative-ai-js/blob/main/samples/node/simple-text.js#L28
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    const generatedQuizQuestions = response.text();
 
-  // The response from the API is in the format
-  // ```json
-  // [{....}]
-  // ```
-  // Clean the first and last line to extract the JSON
-  // console.log('Prompt response:', generatedQuizQuestions);
-  // console.log(
-  //   'After clean up: ',
-  //   removeFirstAndLastLine(generatedQuizQuestions),
-  // );
-  const cleanedGeneratedQuizQuestions = removeFirstAndLastLine(
-    generatedQuizQuestions,
-  );
-  // console.log(cleanedGeneratedQuizQuestions);
-  return JSON.parse(cleanedGeneratedQuizQuestions);
+    return processApiResponse(generatedQuizQuestions);
+  } catch (error) {
+    // Retry generating quiz
+    if (attemptCount < QUIZ_GENERATION_RETRY_COUNT_LIMIT) {
+      return await generateQuestions(instructionText, attemptCount + 1);
+    } else {
+      throw new Error('All attempts to generate the quiz with Gemini failed.');
+    }
+  }
+  
 }
 
 export const getQuiz = query({
@@ -197,33 +275,50 @@ export const generateQuiz = action({
       videoId: args.videoId,
       questions: [],
       createdBy: video.userId,
-      status: 'processing',
+      status: QUIZ_STATUS_TYPES.PROCESSING,
     });
 
-    // Get the transcript
-    const transcript = YoutubeTranscript.fetchTranscript(video.youtubeId, {
-      lang: 'en',
-    });
+    try {
+      // Get the transcript
+      const transcript = YoutubeTranscript.fetchTranscript(video.youtubeId, {
+        lang: 'en',
+      });
 
-    // Clean the transcript
-    let completeTranscript = '';
-    (await transcript).map((t) => (completeTranscript += t.text));
-    const videoCleanTranscript = completeTranscript.replace(
-      /[^\x00-\x7F]/g,
-      '',
-    );
+      // Clean the transcript
+      let completeTranscript = '';
+      (await transcript).map((t) => (completeTranscript += t.text));
+      const videoCleanTranscript = completeTranscript.replace(
+        /[^\x00-\x7F]/g,
+        '',
+      );
 
-    // Generate the quiz questions
-    const generatedQuestions = await generateQuestions(videoCleanTranscript);
+      // Generate the quiz questions
+      const generatedQuestions = await generateQuestions(videoCleanTranscript);
 
-    // Put it in the quizzes table
-    await ctx.runMutation(api.quizzes.updateQuiz, {
-      quizId: quiz as Id<'quizzes'>,
-      videoId: video._id as Id<'videos'>,
-      questions: generatedQuestions,
-      createdBy: video.userId,
-      status: 'ready',
-    });
+      // Put it in the quizzes table
+      await ctx.runMutation(api.quizzes.updateQuiz, {
+        quizId: quiz as Id<'quizzes'>,
+        videoId: video._id as Id<'videos'>,
+        questions: generatedQuestions,
+        createdBy: video.userId,
+        status: QUIZ_STATUS_TYPES.READY,
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Failed in generating quiz. Error message: ${error.message}`);
+      } else {
+        console.error(`Failed in generating quiz. Unknown error: ${error}`);
+      }
+      await ctx.runMutation(api.quizzes.updateQuiz, {
+        quizId: quiz as Id<'quizzes'>,
+        videoId: video._id as Id<'videos'>,
+        questions: [],
+        createdBy: video.userId,
+        status: QUIZ_STATUS_TYPES.FAILED,
+      });
+
+      // [TODO][Kanika consult Hosna]: Surface this error to the front end for handling
+    }
   },
 });
 
