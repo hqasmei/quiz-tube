@@ -20,9 +20,13 @@ interface Answers {
   [key: number]: string;
 }
 
+interface QuestionScore {
+  [key: number]: number;
+}
+
 export default function LearnPage({ params }: { params: { videoId: string } }) {
   const [answers, setAnswers] = useState<Answers>({});
-  const [score, setScore] = useState(0);
+  const [questionsScore, setScore] = useState<QuestionScore>({});
   const [quizComplete, setQuizComplete] = useState(false);
 
   const videoId = params.videoId;
@@ -43,8 +47,10 @@ export default function LearnPage({ params }: { params: { videoId: string } }) {
         (prev[questionIndex] && option !== prev[questionIndex])
       ) {
         const correctAnswer = getQuiz?.questions[questionIndex].answer;
-        const adjustment = option === correctAnswer ? 1 : -1;
-        setScore((prevScore) => prevScore + adjustment);
+        const adjustment = option === correctAnswer ? 1 : 0;
+        setScore((prev) => {
+          return { ...prev, [questionIndex]: adjustment}
+        });
       }
 
       // Check if all questions have been answered
@@ -118,7 +124,7 @@ export default function LearnPage({ params }: { params: { videoId: string } }) {
                         Quiz Completed! Here are your results:
                       </h2>
                       <p>
-                        You got {score} out of {getQuiz?.questions.length}{' '}
+                        You got {Object.values(questionsScore).reduce((accumulator, currentValue) => accumulator + currentValue, 0)} out of {getQuiz?.questions.length}{' '}
                         correct!
                       </p>
                       {getQuiz?.questions.map(
@@ -233,7 +239,7 @@ export default function LearnPage({ params }: { params: { videoId: string } }) {
                               Quiz Completed! Here are your results:
                             </h2>
                             <p>
-                              You got {score} out of {getQuiz?.questions.length}{' '}
+                              You got {Object.values(questionsScore).reduce((accumulator, currentValue) => accumulator + currentValue, 0)} out of {getQuiz?.questions.length}{' '}
                               correct!
                             </p>
                             {getQuiz?.questions.map(
