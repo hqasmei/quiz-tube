@@ -9,10 +9,7 @@ export async function trackEvent(key: string) {
   return fetch(eventsEndpoint, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Content-Type': 'application/json', 
     },
     body: JSON.stringify({
       key: key,
